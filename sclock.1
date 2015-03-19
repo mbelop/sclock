@@ -1,0 +1,156 @@
+\"     $Id: sclock.1,v 1.2 2007/05/22 14:22:58 pyr Exp $
+.\"
+.\" Copyright (c) 2007 Pierre-Yves Ritschard <pyr@spootnik.org>
+.\"
+.\" Permission to use, copy, modify, and distribute this software for any
+.\" purpose with or without fee is hereby granted, provided that the above
+.\" copyright notice and this permission notice appear in all copies.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+.\" WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+.\" MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+.\" ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+.\" WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+.\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+.\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.Dd May 22, 2007
+.Dt SCLOCK 1
+.Os
+.Sh NAME
+.Nm sclock
+.Nd simple digital clock
+.Sh SYNOPSIS
+.Op Fl twelve
+.Op Fl blink
+.Op Fl seconds
+.Op Fl outline
+.Op Fl sep
+.Op Fl db
+.Op Fl \&dw
+.Op Fl dh
+.Op Fl fg
+.Op Fl bg
+.Op Fl cw
+.Sh DESCRIPTION
+The
+.Nm
+program display the time in a digital led display.
+Seconds can be displayed as well as either 12-hour format time or
+military time (24-hour format).
+.Pp
+.Sh OPTIONS
+.Nm
+accepts all of the standard X Toolkit command line options along with the 
+additional options listed below:
+.Bl -tag -width Ds
+.It Fl twelve
+This option indicates that time should be displayed in 12-hour format
+followed by the mention
+.Em am
+or
+.Em pm .
+The default output format is military time.
+.It Fl blink
+Make the column displayed between hours and minutes and - if applicable -
+between minutes and seconds blink every second.
+The default is not to blink.
+.It Fl seconds
+Display seconds.
+The default is to only display hours and minutes.
+.It Fl outline
+Draw a one-pixel line inside the window using the standard foreground color.
+No outline is drawn by default.
+.It Fl sep
+This parameter is used to mimic a wrist watch, it indicates how many pixels
+to skip when drawing lines to represent digits.
+By default 2 pixels are skipped.
+.It Fl db
+Separate digits and columns from each other by 
+This option indicates that a brief summary of the allowed options should be
+printed on the standard error.
+By default 2 pixel separate each digit.
+.It Fl \&dw
+Width of a digit.
+The default value is 6 pixel.
+.It Fl dh
+Height of a digit.
+The default value is 10 pixel.
+.It Fl cw
+Width of the dotted column drawn between elmements of the time.
+The default value is 1 pixel.
+.El
+.Sh RESOURCES
+This program uses the 
+.I SClock
+class, 
+widget.  It understands all of the core resource names and classes as well as:
+.Pp
+.Bl -tag -width Ds -compact
+.It Xo
+.Ic twelve (class Twelve) 
+.Xc
+same as the
+.Em -twelve
+command line option.
+.It Xo
+.Ic blink (class Blink) 
+.Xc
+same as the
+.Em -blink
+command line option.
+.It Xo
+.Ic seconds (class Seconds) 
+.Xc
+same as the
+.Em -seconds
+command line option.
+.It Xo
+.Ic outline (class Outline) 
+.Xc
+same as the
+.Em -outline
+command line option.
+.It Xo
+.Ic digit.sep (class Digit.Sep) 
+.Xc
+same as the
+.Em -sep
+command line option.
+.It Xo
+.Ic digit.border (class Digit.Border) 
+.Xc
+same as the
+.Em -db
+command line option.
+.It Xo
+.Ic digit.width (class Digit.Width) 
+.Xc
+same as the
+.Em -dw
+command line option.
+.It Xo
+.Ic digit.height (class Digit.Height) 
+.Xc
+same as the
+.Em -dh
+command line option.
+.It Xo
+.Ic column.width (class Column.Width)
+.Xc
+same as the
+.Em -cw
+command line option.
+.El
+.Sh FILES
+.Bl -tag -width "/etc/X11/app-defaults/SClockXX" -compact
+.It /etc/X11/app-defaults/SClock
+specifies required resources
+.El
+.Sh "SEE ALSO"
+.Xr X 7 ,
+.Xr xrdb 1 ,
+.Xr xclock 1 ,
+.Xr time 3C
+.Sh AUTHORS
+Pierre-Yves Ritschard
