@@ -1,4 +1,4 @@
-\"     $Id: sclock.1,v 1.2 2007/05/22 14:22:58 pyr Exp $
+.\"     $Id: sclock.1,v 1.2 2007/05/22 14:22:58 pyr Exp $
 .\"
 .\" Copyright (c) 2007 Pierre-Yves Ritschard <pyr@spootnik.org>
 .\"
@@ -22,6 +22,7 @@
 .Nd simple digital clock
 .Sh SYNOPSIS
 .Op Fl twelve
+.Op Fl apm
 .Op Fl blink
 .Op Fl seconds
 .Op Fl outline
@@ -51,6 +52,11 @@ followed by the mention
 or
 .Em pm .
 The default output format is military time.
+.It Fl apm
+Display battery status in percents or AC if external power is connected.
+Works only on architectures that provide an
+.Xr apm 4
+interface.
 .It Fl blink
 Make the column displayed between hours and minutes and - if applicable -
 between minutes and seconds blink every second.
@@ -92,6 +98,12 @@ widget.  It understands all of the core resource names and classes as well as:
 .Xc
 same as the
 .Em -twelve
+command line option.
+.It Xo
+.Ic apm (class Apm)
+.Xc
+same as the
+.Em -apm
 command line option.
 .It Xo
 .Ic blink (class Blink) 

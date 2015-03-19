@@ -21,11 +21,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <time.h>
 #include <poll.h>
 #include <X11/Xlib.h>
 #include <X11/Xresource.h>
 #include <X11/keysym.h>
+
+#if defined(__amd64__) || defined(__i386__) || defined(__macppc__)
+#include <sys/ioctl.h>
+#include <machine/apmvar.h>
+#include <fcntl.h>
+#define HAVE_APM	1
+#endif
 
 #ifndef APPLOADDIR
 #define APPLOADDIR	"/etc/X11/app-defaults/"
@@ -60,6 +68,8 @@
 #define	D7		BH_TOP|BV_TRT|BV_BRT
 #define D8		BH_TOP|BH_MID|BH_BOT|BV_TLF|BV_TRT|BV_BLF|BV_BRT
 #define D9		BH_TOP|BH_MID|BH_BOT|BV_TLF|BV_TRT|BV_BRT
+#define DA		BH_TOP|BH_MID|BV_TLF|BV_TRT|BV_BLF|BV_BRT
+#define DC		BH_TOP|BH_BOT|BV_TLF|BV_BLF
 
 struct area {
 	int		 x;
@@ -75,6 +85,7 @@ struct widget {
 #define F_SECONDS		 0x04
 #define F_OUTLINE		 0x08
 #define F_SHADE			 0x10
+#define F_APM			 0x20
 	int			 screen;
 	Display			*dpy;
 	Window			 root;
@@ -85,9 +96,12 @@ struct widget {
 	XFontStruct		*font;
 	GC			 gc;
 	struct area		 geom;
-#define NAREAS			 9
+#define NAREAS			 11
 	struct area		 areas[NAREAS];
 	time_t			 before;
+#ifdef HAVE_APM
+	int			 apmdev;
+#endif
 	int			 sep;
 	int			 db;
 	int			 dw;
@@ -143,10 +157,16 @@ widget_areas(struct widget *w)
 	if (width > w->geom.w)
 		errx(1, "invalid geometry");
 
-	w->xofft = (w->geom.w / 2) - (width / 2);
+#ifdef HAVE_APM
+	if (w->flags & F_APM)
+		w->xofft = 0;
+	else
+#endif
+		w->xofft = (w->geom.w / 2) - (width / 2);
+
 	w->yofft = (w->geom.h / 2) - (w->dh / 2);
 
-	w->areas[0].x = w->xofft;;
+	w->areas[0].x = w->xofft;
 	w->areas[0].y = w->yofft;
 	w->areas[0].w = w->dw;
 	w->areas[0].h = w->dh;
@@ -168,7 +188,7 @@ widget_areas(struct widget *w)
 
 	w->areas[4].x = w->areas[3].x + w->areas[3].w + w->db;
 	w->areas[4].y = w->yofft;
-	w->areas[4].w = w->dw;;
+	w->areas[4].w = w->dw;
 	w->areas[4].h = w->dh;
 
 	last_area = &w->areas[4];
@@ -181,12 +201,12 @@ widget_areas(struct widget *w)
 
 		w->areas[6].x = w->areas[5].x + w->areas[5].w + w->db;
 		w->areas[6].y = w->yofft;
-		w->areas[6].w = w->dw;;
+		w->areas[6].w = w->dw;
 		w->areas[6].h = w->dh;
 
 		w->areas[7].x = w->areas[6].x + w->areas[6].w + w->db;
 		w->areas[7].y = w->yofft;
-		w->areas[7].w = w->dw;;
+		w->areas[7].w = w->dw;
 		w->areas[7].h = w->dh;
 
 		last_area = &w->areas[7];
@@ -196,6 +216,21 @@ widget_areas(struct widget *w)
 		w->areas[8].x = last_area->x + last_area->w + w->db;
 		w->areas[8].y = w->yofft + w->dh - w->font->descent;
 	}
+
+#ifdef HAVE_APM
+	if (w->flags & F_APM) {
+		/* right aligned */
+		w->areas[10].x = w->geom.w - w->db * 5;
+		w->areas[10].y = w->yofft;
+		w->areas[10].w = w->dw;
+		w->areas[10].h = w->dh;
+
+		w->areas[9].x = w->areas[10].x - w->areas[10].w - w->db;
+		w->areas[9].y = w->yofft;
+		w->areas[9].w = w->dw;
+		w->areas[9].h = w->dh;
+	}
+#endif
 }
 
 void
@@ -281,7 +316,24 @@ widget_draw(struct widget *w, int forced)
 		XDrawText(w->dpy, w->win, w->gc,
 		    w->areas[8].x, w->areas[8].y, &ti, 1);
 	}
+#ifdef HAVE_APM
+	if (w->flags & F_APM) {
+		struct apm_power_info api;
 
+		if (ioctl(w->apmdev, APM_IOC_GETPOWER, &api) == -1)
+			err(1, "APM_IOC_GETPOWER");
+
+		if (api.ac_state == APM_AC_ON) {
+			widget_draw_digit(w, 9, 10);  /* A */
+			widget_draw_digit(w, 10, 11); /* C */
+		} else {
+			if (api.battery_life == 100)
+				api.battery_life--;
+			widget_draw_digit(w, 9, api.battery_life / 10);
+			widget_draw_digit(w, 10, api.battery_life % 10);
+		}
+	}
+#endif
 	XFlush(w->dpy);
 	XSync(w->dpy, 0);
 }
@@ -304,7 +356,8 @@ widget_draw_digit(struct widget *w, int a_idx, int digit)
 {
 	int		 mask;
 	struct area	*a;
-	static int	 digits[] = { D0, D1, D2, D3, D4, D5, D6, D7, D8, D9 };
+	static int	 digits[] = { D0, D1, D2, D3, D4, D5, D6, D7, D8, D9,
+				      DA, DC };
 
 	a = &w->areas[a_idx];
 	mask = digits[digit];
@@ -390,6 +443,9 @@ resource_init(struct widget *w, int argc, char *argv[])
 		{ "-blink",	"blink",	XrmoptionNoArg, "on" },
 		{ "-seconds",	"seconds",	XrmoptionNoArg, "on" },
 		{ "-outline",	"outline",	XrmoptionNoArg, "on" },
+#ifdef HAVE_APM
+		{ "-apm",	"apm",		XrmoptionNoArg, "on" },
+#endif
 		{ "-sep",	"digit.sep",	XrmoptionSepArg, NULL },
 		{ "-db",	"digit.border",	XrmoptionSepArg, NULL },
 		{ "-dw",	"digit.width",	XrmoptionSepArg, NULL },
@@ -426,6 +482,11 @@ resource_init(struct widget *w, int argc, char *argv[])
 	    &dummy, &val))
 		if (strcmp((char *)val.addr, "on") == 0)
 			w->flags |= F_OUTLINE;
+#ifdef HAVE_APM
+	if (XrmGetResource(db, "sclock.apm", "SClock.Apm", &dummy, &val))
+		if (strcmp((char *)val.addr, "on") == 0)
+			w->flags |= F_APM;
+#endif
 
 	if (XrmGetResource(db, "sclock.foreground", "SClock.Foreground",
 	    &dummy, &val))
@@ -505,22 +566,25 @@ main(int argc, char *argv[])
 {
 	struct widget		w;
 	XEvent			ev;
-	struct timeval		tv;
 
 	bzero(&w, sizeof(w));
 	widget_init(&w);
 	resource_init(&w, argc, argv);
 	widget_setup(&w);
 
+#ifdef HAVE_APM
+	if ((w.flags & F_APM) &&
+	    (w.apmdev = open("/dev/apm", O_RDONLY, 0)) == -1)
+		err(1, "/dev/apm");
+#endif
+
 	while (1) {
 		while (XPending(w.dpy)) {
 			XNextEvent(w.dpy, &ev);
 			widget_event(&w, &ev);
 		}
-		tv.tv_sec = 0;
-		tv.tv_usec = 250;
-		select(0, NULL, NULL, NULL, &tv);
+		usleep(250);
 		widget_draw(&w, 0);
 	}
-	return (0);	
+	return (0);
 }
