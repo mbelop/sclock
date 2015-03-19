@@ -217,9 +217,9 @@ widget_setup(struct widget *w)
 	XSetForeground(w->dpy, w->gc, w->fg.pixel);
 	XSetBackground(w->dpy, w->gc, w->bg.pixel);
 	XSetFont(w->dpy, w->gc, w->font->fid);
-	
+
 	XSelectInput(w->dpy, w->win,
-	    ExposureMask | StructureNotifyMask | KeyReleaseMask);
+	    ExposureMask | StructureNotifyMask);
 	XSetWindowBackground(w->dpy, w->win, w->bg.pixel);
 	XSetWindowBackground(w->dpy, w->win, w->bg.pixel);
 	XMapWindow(w->dpy, w->win);
@@ -353,17 +353,10 @@ widget_draw_digit(struct widget *w, int a_idx, int digit)
 void
 widget_event(struct widget *w, XEvent *ev)
 {
-	KeySym	ks;
-
 	switch (ev->type) {
 	case Expose:
 		if (ev->xexpose.count == 0)
 			widget_draw(w, 1);
-		break;
-	case KeyRelease:
-		ks = XKeycodeToKeysym(w->dpy, ev->xkey.keycode, 0);
-		if (ks == XK_q)
-			exit(1);
 		break;
 	case ConfigureNotify:
 		w->geom.x = ev->xconfigure.x;
