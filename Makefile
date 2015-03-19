@@ -4,9 +4,10 @@ PREFIX	?=	/usr/local
 
 BINDIR	=	${PREFIX}/bin
 MANDIR	=	${PREFIX}/man/cat
+X11BASE	?=	/usr/X11R6
 
 PROG	=	sclock
-CFLAGS	+=	-I${X11BASE}/include -Wall -g3
+CFLAGS	+=	-I${X11BASE}/include -Wall -Werror
 LDFLAGS	+=	-L${X11BASE}/lib
 LDADD	=	-lX11
 
