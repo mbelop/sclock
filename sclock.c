@@ -457,8 +457,8 @@ resource_init(struct widget *w, int argc, char *argv[])
 		{ "-outline",	"outline",	XrmoptionNoArg, "on" },
 #ifdef HAVE_APM
 		{ "-apm",	"apm",		XrmoptionNoArg, "on" },
-		{ "-blevel",	"beeplevel",	XrmoptionSepArg, "10" },
-		{ "-bpause",	"beeppause",	XrmoptionSepArg, "60" },
+		{ "-blevel",	"beeplevel",	XrmoptionSepArg, NULL },
+		{ "-bpause",	"beeppause",	XrmoptionSepArg, NULL },
 		{ "-bscript",	"beepscript",	XrmoptionSepArg, NULL },
 #endif
 		{ "-sep",	"digit.sep",	XrmoptionSepArg, NULL },
@@ -507,14 +507,16 @@ resource_init(struct widget *w, int argc, char *argv[])
 		if (estr)
 			errx(1, "battery level %s is %s", (char *)val.addr,
 			    estr);
-	}
+	} else
+		w->beeplevel = 10;
 	if (XrmGetResource(db, "sclock.beeppause", "SClock.BeepPause",
 	    &dummy, &val)) {
 		w->beeppause = strtonum((char *)val.addr, 10, 300, &estr);
 		if (estr)
 			errx(1, "beep interval %s is %s", (char *)val.addr,
 			    estr);
-	}
+	} else
+		w->beeppause = 60;
 	if (XrmGetResource(db, "sclock.beepscript", "SClock.BeepScript",
 	    &dummy, &val))
 		strlcpy(w->beepscript, (char *)val.addr, sizeof(w->beepscript));
