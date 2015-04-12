@@ -24,6 +24,9 @@
 .Op Fl twelve
 .Op Fl apm
 .Op Fl blink
+.Op Fl blevel Ar percent
+.Op Fl bpause Ar seconds
+.Op Fl bscript Ar path
 .Op Fl seconds
 .Op Fl outline
 .Op Fl sep
@@ -61,6 +64,19 @@ interface.
 Make the column displayed between hours and minutes and - if applicable -
 between minutes and seconds blink every second.
 The default is not to blink.
+.It Fl blevel Ar percent
+If APM is supported and enabled this option specifies battery discharge
+threshold triggering the
+.Fl beepscript .
+Default value is 10%.
+.It Fl bpause Ar seconds
+If beep script is configured this option specifies interval in seconds
+between two consecutive beeps.
+Default value is 60 seconds.
+.It Fl bscript Ar path
+A program that will be executed when battery discharge level reaches the
+.Ar beeplevel
+threshold.
 .It Fl seconds
 Display seconds.
 The default is to only display hours and minutes.
@@ -110,6 +126,24 @@ command line option.
 .Xc
 same as the
 .Em -blink
+command line option.
+.It Xo
+.Ic beeplevel (class BeepLevel) 
+.Xc
+same as the
+.Em -blevel
+command line option.
+.It Xo
+.Ic beeppause (class BeepPause) 
+.Xc
+same as the
+.Em -bpause
+command line option.
+.It Xo
+.Ic beepscript (class BeepScript) 
+.Xc
+same as the
+.Em -bscript
 command line option.
 .It Xo
 .Ic seconds (class Seconds) 
@@ -165,4 +199,5 @@ specifies required resources
 .Xr xclock 1 ,
 .Xr time 3C
 .Sh AUTHORS
-Pierre-Yves Ritschard
+Pierre-Yves Ritschard wrote the program.
+Mike Belopuhov has added APM support and beeps.

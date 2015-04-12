@@ -18,6 +18,7 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <err.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -101,6 +102,9 @@ struct widget {
 	time_t			 before;
 #ifdef HAVE_APM
 	int			 apmdev;
+	int			 beeplevel;
+	int			 beeppause;
+	char			 beepscript[PATH_MAX];
 #endif
 	int			 sep;
 	int			 db;
@@ -263,7 +267,7 @@ widget_setup(struct widget *w)
 void
 widget_draw(struct widget *w, int forced)
 {
-	time_t		 now;
+	time_t		now;
 	struct tm	*tm;
 	int		hour;
 	int		am;
@@ -318,7 +322,8 @@ widget_draw(struct widget *w, int forced)
 	}
 #ifdef HAVE_APM
 	if (w->flags & F_APM) {
-		struct apm_power_info api;
+		struct apm_power_info	api;
+		static time_t		last;
 
 		if (ioctl(w->apmdev, APM_IOC_GETPOWER, &api) == -1)
 			err(1, "APM_IOC_GETPOWER");
@@ -331,6 +336,13 @@ widget_draw(struct widget *w, int forced)
 				api.battery_life--;
 			widget_draw_digit(w, 9, api.battery_life / 10);
 			widget_draw_digit(w, 10, api.battery_life % 10);
+
+			if (w->beeplevel > 0 && strlen(w->beepscript) > 0 &&
+			    w->beeplevel > api.battery_life &&
+			    (last == 0 || now - last > w->beeppause)) {
+				system(w->beepscript);
+				last = now;
+			}
 		}
 	}
 #endif
@@ -445,6 +457,9 @@ resource_init(struct widget *w, int argc, char *argv[])
 		{ "-outline",	"outline",	XrmoptionNoArg, "on" },
 #ifdef HAVE_APM
 		{ "-apm",	"apm",		XrmoptionNoArg, "on" },
+		{ "-blevel",	"beeplevel",	XrmoptionSepArg, "10" },
+		{ "-bpause",	"beeppause",	XrmoptionSepArg, "60" },
+		{ "-bscript",	"beepscript",	XrmoptionSepArg, NULL },
 #endif
 		{ "-sep",	"digit.sep",	XrmoptionSepArg, NULL },
 		{ "-db",	"digit.border",	XrmoptionSepArg, NULL },
@@ -486,6 +501,23 @@ resource_init(struct widget *w, int argc, char *argv[])
 	if (XrmGetResource(db, "sclock.apm", "SClock.Apm", &dummy, &val))
 		if (strcmp((char *)val.addr, "on") == 0)
 			w->flags |= F_APM;
+	if (XrmGetResource(db, "sclock.beeplevel", "SClock.BeepLevel",
+	    &dummy, &val)) {
+		w->beeplevel = strtonum((char *)val.addr, 1, 99, &estr);
+		if (estr)
+			errx(1, "battery level %s is %s", (char *)val.addr,
+			    estr);
+	}
+	if (XrmGetResource(db, "sclock.beeppause", "SClock.BeepPause",
+	    &dummy, &val)) {
+		w->beeppause = strtonum((char *)val.addr, 10, 300, &estr);
+		if (estr)
+			errx(1, "beep interval %s is %s", (char *)val.addr,
+			    estr);
+	}
+	if (XrmGetResource(db, "sclock.beepscript", "SClock.BeepScript",
+	    &dummy, &val))
+		strlcpy(w->beepscript, (char *)val.addr, sizeof(w->beepscript));
 #endif
 
 	if (XrmGetResource(db, "sclock.foreground", "SClock.Foreground",
